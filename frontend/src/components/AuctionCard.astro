@@ -1,0 +1,215 @@
+---
+import { formatMoney, timeLeftLabel, type Auction } from '../lib/api';
+
+interface Props {
+  auction: Auction;
+}
+
+const { auction } = Astro.props;
+const active = auction.status === 'ACTIVE';
+---
+
+<a
+  class="auction-card"
+  href={`/auctions/${auction.id}`}
+  data-live={active ? auction.end_at : undefined}
+>
+  <div class="thumb">
+    {
+      auction.image_url ? (
+        <img src={auction.image_url} alt={auction.title} loading="lazy" />
+      ) : (
+        <div class="thumb-empty" />
+      )
+    }
+
+    <span class={active ? 'pill pill-live' : 'pill pill-ended'} data-state>
+      {active ? 'En vivo' : 'Finalizada'}
+    </span>
+  </div>
+
+  <div class="body">
+    <h3>{auction.title}</h3>
+    <p class="artist">{auction.artist}</p>
+
+    <div class="row">
+      <div>
+        <span class="k">{active ? 'Precio actual' : 'Precio final'}</span>
+        <strong class="price">{formatMoney(auction.current_price)}</strong>
+      </div>
+      <div class="right">
+        <span class="k">{active ? 'Termina en' : 'Estado'}</span>
+        <strong class="time" data-time>{active ? timeLeftLabel(auction.end_at) : 'Cerrada'}</strong>
+      </div>
+    </div>
+
+    <span class="cta">{active ? 'Entrar a pujar' : 'Ver resultado'} →</span>
+  </div>
+</a>
+
+<script>
+  const cards = document.querySelectorAll<HTMLElement>('[data-live]');
+  let refreshing = false;
+
+  function label(seconds: number): string {
+    if (seconds < 60) return `${seconds} s`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} min`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)} h`;
+
+    return `${Math.floor(seconds / 86400)} d`;
+  }
+
+  function tick() {
+    const now = Date.now();
+
+    for (const card of cards) {
+      const endAt = new Date(card.dataset.live ?? '').getTime();
+      const left = Math.max(0, Math.floor((endAt - now) / 1000));
+
+      const time = card.querySelector<HTMLElement>('[data-time]');
+      const state = card.querySelector<HTMLElement>('[data-state]');
+
+      if (left === 0) {
+        if (time) time.textContent = 'Cerrando…';
+        if (state) {
+          state.textContent = 'Cerrando…';
+          state.classList.remove('pill-live');
+          state.classList.add('pill-ended');
+        }
+
+        if (!refreshing) {
+          refreshing = true;
+          setTimeout(() => location.reload(), 4000);
+        }
+
+        continue;
+      }
+
+      if (time) time.textContent = label(left);
+    }
+  }
+
+  tick();
+  setInterval(tick, 1000);
+</script>
+
+<style>
+  .auction-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .auction-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--line-strong);
+  }
+
+  .thumb {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    background: #f1f1f4;
+    overflow: hidden;
+  }
+
+  .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+  }
+
+  .auction-card:hover .thumb img {
+    transform: scale(1.04);
+  }
+
+  .thumb-empty {
+    width: 100%;
+    height: 100%;
+    background:
+      radial-gradient(120% 90% at 20% 10%, rgba(255, 79, 208, 0.16), transparent 60%),
+      linear-gradient(140deg, #ecedf1, #f7f7f9);
+  }
+
+  .thumb .pill {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    backdrop-filter: blur(6px);
+  }
+
+  .body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.15rem 1.25rem 1.35rem;
+  }
+
+  .artist {
+    margin-top: -0.75rem;
+    font-size: 0.85rem;
+    color: var(--text-2);
+  }
+
+  h3 {
+    font-size: 1.02rem;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    -webkit-box-orient: vertical;
+  }
+
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem;
+  }
+
+  .row > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .right {
+    align-items: flex-end;
+  }
+
+  .k {
+    font-size: 0.74rem;
+    color: var(--text-3);
+    letter-spacing: 0.02em;
+  }
+
+  .price {
+    font-size: 1.3rem;
+    letter-spacing: -0.02em;
+  }
+
+  .time {
+    font-size: 0.95rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .cta {
+    font-size: 0.88rem;
+    font-weight: 550;
+    color: var(--text-2);
+    transition: color 0.15s ease;
+  }
+
+  .auction-card:hover .cta {
+    color: var(--accent-ink);
+  }
+</style>

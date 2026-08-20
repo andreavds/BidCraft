@@ -1,0 +1,353 @@
+---
+import Layout from '../layouts/Layout.astro';
+import AuctionCard from '../components/AuctionCard.astro';
+import { serverApiUrl, type Auction } from '../lib/api';
+
+let featured: Auction[] = [];
+
+try {
+  const response = await fetch(`${serverApiUrl()}/api/v1/auctions?status=ACTIVE&limit=3`);
+  if (response.ok) {
+    featured = (await response.json()).auctions;
+  }
+} catch {
+  featured = [];
+}
+
+const benefits = [
+  {
+    title: 'Pujas en tiempo real',
+    claim: 'Sin recargar la página.',
+    text: 'Cada oferta aparece al instante en la pantalla de todos los participantes conectados a la sala.',
+  },
+  {
+    title: 'Concurrencia segura',
+    claim: 'Nunca dos ganadores.',
+    text: 'Si dos personas pujan lo mismo en el mismo milisegundo, el servidor acepta una sola.',
+  },
+  {
+    title: 'Cierre automático',
+    claim: 'Lo decide el servidor.',
+    text: 'Al expirar el plazo la subasta se cierra sola y se anuncia al ganador. No depende del navegador.',
+  },
+  {
+    title: 'Historial completo',
+    claim: 'Las cuentas siempre cuadran.',
+    text: 'Cada puja queda registrada con su autor y su importe, y el precio coincide con la última oferta.',
+  },
+];
+
+const steps = [
+  { n: '1', title: 'Encuentra una subasta', text: 'Explora el catálogo y entra en la pieza que te interese.' },
+  { n: '2', title: 'Haz tu puja', text: 'Ofrece por encima del mínimo indicado y confirma.' },
+  { n: '3', title: 'Sigue el precio en vivo', text: 'Verás subir las ofertas del resto según ocurren.' },
+  { n: '4', title: 'Gana al cerrar', text: 'Cuando el contador llega a cero se anuncia el ganador.' },
+];
+---
+
+<Layout title="BidCraft — Subastas de arte digital en tiempo real">
+  <section class="hero">
+    <div class="glow"></div>
+
+    <div class="page hero-inner">
+      <span class="pill pill-dark">Plataforma de subastas en vivo</span>
+
+      <h1>Subastas en tiempo real.<br />Cada puja cuenta.</h1>
+
+      <p class="lead">
+        Compite por piezas de arte digital junto a otros compradores y mira cómo cambia el precio
+        al instante. Cuando el tiempo se acaba, el ganador se decide solo.
+      </p>
+
+      <div class="cta-row">
+        <a class="btn btn-accent btn-lg" href="/auctions">Explorar subastas →</a>
+        <a class="btn btn-outline-light btn-lg" href="/auctions/new">Publicar una subasta</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="page">
+      <div class="section-head center">
+        <h2>Todo lo que necesita una subasta<br />para funcionar en vivo</h2>
+      </div>
+
+      <div class="card benefits">
+        {
+          benefits.map((benefit) => (
+            <article class="panel benefit">
+              <h3>{benefit.title}</h3>
+              <p class="claim">{benefit.claim}</p>
+              <p class="muted">{benefit.text}</p>
+            </article>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="section featured">
+    <div class="page">
+      <div class="featured-head">
+        <div>
+          <span class="eyebrow">En vivo ahora</span>
+          <h2>Subastas abiertas</h2>
+        </div>
+        <a class="btn btn-ghost" href="/auctions">Ver todas</a>
+      </div>
+
+      {
+        featured.length > 0 ? (
+          <div class="grid">
+            {featured.map((auction) => (
+              <AuctionCard auction={auction} />
+            ))}
+          </div>
+        ) : (
+          <div class="empty card">
+            <span class="empty-mark" />
+            <h3>Todavía no hay subastas abiertas</h3>
+            <p class="muted">Publica la primera pieza y compártela para que otros pujen.</p>
+            <a class="btn btn-accent" href="/auctions/new">Publicar una subasta</a>
+          </div>
+        )
+      }
+    </div>
+  </section>
+
+  <section class="section" id="como-funciona">
+    <div class="page">
+      <div class="section-head center">
+        <span class="eyebrow">Cómo funciona</span>
+        <h2>Cuatro pasos y estás dentro</h2>
+      </div>
+
+      <ol class="card steps">
+        {
+          steps.map((step) => (
+            <li class="panel step">
+              <span class="step-n">{step.n}</span>
+              <h3>{step.title}</h3>
+              <p class="muted">{step.text}</p>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="page">
+      <div class="final">
+        <div class="glow glow-final"></div>
+        <div class="final-inner">
+          <h2>¿Listo para pujar?</h2>
+          <p class="lead">
+            Entra en una sala en vivo o publica tu propia pieza en menos de un minuto.
+          </p>
+          <div class="cta-row">
+            <a class="btn btn-accent btn-lg" href="/auctions">Explorar subastas →</a>
+            <a class="btn btn-outline-light btn-lg" href="/auctions/new">Publicar una subasta</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .hero {
+    position: relative;
+    overflow: hidden;
+    color: #fff;
+    padding: 8.5rem 0 6rem;
+    background: linear-gradient(100deg, #35103f 0%, #1b0f24 38%, #0f0d14 70%, var(--ink) 100%);
+  }
+
+  .glow {
+    position: absolute;
+    inset: -35% auto auto -25%;
+    width: 70%;
+    height: 780px;
+    background: radial-gradient(50% 50% at 40% 50%, rgba(123, 63, 228, 0.38), transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1.5rem;
+  }
+
+  .hero h1 {
+    max-width: 18ch;
+    font-weight: 700;
+  }
+
+  .hero .lead {
+    color: rgba(255, 255, 255, 0.66);
+    text-align: center;
+  }
+
+  .cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+  }
+
+  .benefits,
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .benefit {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    text-align: center;
+    align-items: center;
+    padding: 2rem 1.5rem;
+    transition: background 0.2s ease;
+  }
+
+  .benefit:hover {
+    background: var(--accent-soft);
+  }
+
+  .claim {
+    color: var(--accent-ink);
+    font-weight: 600;
+    font-size: 0.92rem;
+  }
+
+  .benefit p.muted {
+    font-size: 0.92rem;
+  }
+
+  .featured-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+    flex-wrap: wrap;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    text-align: center;
+    padding: 4rem 1.5rem;
+  }
+
+  .empty-mark {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    background: linear-gradient(140deg, var(--violet), var(--accent));
+    border: 1px solid var(--line);
+    margin-bottom: 0.25rem;
+  }
+
+  .empty .btn {
+    margin-top: 0.5rem;
+  }
+
+  .steps {
+    list-style: none;
+    margin: 0;
+  }
+
+  .step {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1.75rem 1.5rem;
+  }
+
+  .step-n {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.88rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+  }
+
+  .steps p {
+    font-size: 0.92rem;
+  }
+
+  .final {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--r-lg);
+    color: #fff;
+    background: linear-gradient(100deg, #35103f 0%, #1b0f24 45%, var(--ink) 100%);
+  }
+
+  .glow-final {
+    inset: -60% auto auto -10%;
+    width: 80%;
+    background: radial-gradient(50% 50% at 45% 50%, rgba(123, 63, 228, 0.42), transparent 70%);
+  }
+
+  .final-inner {
+    position: relative;
+    padding: 4.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1rem;
+  }
+
+  .final .lead {
+    color: rgba(255, 255, 255, 0.66);
+    text-align: center;
+  }
+
+  @media (max-width: 1000px) {
+    .benefits,
+    .steps {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 620px) {
+    .benefits,
+    .steps {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 720px) {
+    .hero {
+      padding: 7rem 0 4rem;
+    }
+
+    .final-inner {
+      padding: 3rem 1.25rem;
+    }
+  }
+</style>

@@ -1,0 +1,40 @@
+---
+import Layout from '../layouts/Layout.astro';
+import LoginForm from '../components/LoginForm';
+import { browserApiUrl } from '../lib/api';
+
+const requested = Astro.url.searchParams.get('redirect') ?? '';
+const redirectTo = requested.startsWith('/') && !requested.startsWith('//') ? requested : '/auctions';
+
+const initialMode = Astro.url.searchParams.get('mode') === 'register' ? 'register' : 'login';
+---
+
+<Layout title="Acceder | BidCraft">
+  <section class="wrap">
+    <div class="card card-pad panel-form">
+      <LoginForm
+        client:load
+        apiUrl={browserApiUrl()}
+        redirectTo={redirectTo}
+        initialMode={initialMode}
+      />
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .wrap {
+    flex: 1;
+    display: grid;
+    place-items: center;
+    padding: 7rem 1.5rem 4rem;
+    background: linear-gradient(100deg, #35103f 0%, #1b0f24 45%, var(--ink) 100%);
+  }
+
+  .panel-form {
+    width: 100%;
+    max-width: 420px;
+    padding: 2rem;
+    box-shadow: var(--shadow-lg);
+  }
+</style>

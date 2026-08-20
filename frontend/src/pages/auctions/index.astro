@@ -1,0 +1,200 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import AuctionCard from '../../components/AuctionCard.astro';
+import { serverApiUrl, type Auction } from '../../lib/api';
+
+const requested = Astro.url.searchParams.get('status')?.toUpperCase() ?? '';
+const status = requested === 'ACTIVE' || requested === 'FINISHED' ? requested : '';
+
+let auctions: Auction[] = [];
+let loadError = '';
+
+try {
+  const query = status ? `?status=${status}&limit=100` : '?limit=100';
+  const response = await fetch(`${serverApiUrl()}/api/v1/auctions${query}`);
+
+  if (response.ok) {
+    auctions = (await response.json()).auctions;
+  } else {
+    loadError = `El servidor respondió ${response.status}.`;
+  }
+} catch {
+  loadError = 'No se pudo contactar con el servidor.';
+}
+
+const filters = [
+  { label: 'Todas', value: '' },
+  { label: 'Activas', value: 'ACTIVE' },
+  { label: 'Finalizadas', value: 'FINISHED' },
+];
+
+const liveCount = auctions.filter((auction) => auction.status === 'ACTIVE').length;
+---
+
+<Layout title="Subastas | BidCraft">
+  <section class="head">
+    <div class="page head-inner">
+      <span class="eyebrow">Catálogo</span>
+      <h1>Piezas en subasta</h1>
+      <p class="lead">
+        Entra en cualquier sala para ver el precio moverse en directo y hacer tu oferta.
+      </p>
+
+      <div class="toolbar">
+        <div class="filters">
+          {
+            filters.map((filter) => (
+              <a
+                href={filter.value ? `/auctions?status=${filter.value}` : '/auctions'}
+                class={filter.value === status ? 'chip current' : 'chip'}
+              >
+                {filter.label}
+              </a>
+            ))
+          }
+        </div>
+
+        {
+          !loadError && (
+            <span class="count muted">
+              {auctions.length} {auctions.length === 1 ? 'subasta' : 'subastas'}
+              {status === '' && liveCount > 0 && ` · ${liveCount} en vivo`}
+            </span>
+          )
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="list page">
+    {loadError && <p class="card card-pad error">{loadError}</p>}
+
+    {
+      !loadError && auctions.length === 0 && (
+        <div class="empty card">
+          <span class="empty-mark" />
+          <h3>Nada por aquí todavía</h3>
+          <p class="muted">
+            {status === 'FINISHED'
+              ? 'Ninguna subasta ha terminado aún.'
+              : 'Publica la primera pieza y empieza a recibir pujas.'}
+          </p>
+          <a class="btn btn-accent" href="/auctions/new">Publicar una subasta</a>
+        </div>
+      )
+    }
+
+    {
+      auctions.length > 0 && (
+        <div class="grid">
+          {auctions.map((auction) => (
+            <AuctionCard auction={auction} />
+          ))}
+        </div>
+      )
+    }
+  </section>
+</Layout>
+
+<style>
+  .head {
+    color: #fff;
+    background: linear-gradient(100deg, #35103f 0%, #1b0f24 45%, var(--ink) 100%);
+    padding: 7.5rem 0 3rem;
+  }
+
+  .head-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .head h1 {
+    font-size: clamp(1.9rem, 4vw, 2.7rem);
+  }
+
+  .head .lead {
+    color: rgba(255, 255, 255, 0.62);
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 1.75rem;
+  }
+
+  .filters {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .filters .chip {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.14);
+    color: rgba(255, 255, 255, 0.72);
+  }
+
+  .filters .chip:hover {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.35);
+  }
+
+  .filters .chip.current {
+    background: #fff;
+    border-color: #fff;
+    color: var(--ink);
+    box-shadow: none;
+  }
+
+  .count {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.9rem;
+  }
+
+  .list {
+    flex: 1;
+    padding-top: 2.5rem;
+    padding-bottom: 4rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    text-align: center;
+    padding: 4rem 1.5rem;
+  }
+
+  .empty-mark {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    background: linear-gradient(140deg, var(--violet), var(--accent));
+    border: 1px solid var(--line);
+  }
+
+  .empty .btn {
+    margin-top: 0.5rem;
+  }
+
+  .error {
+    color: var(--danger);
+  }
+
+  @media (max-width: 720px) {
+    .head {
+      padding: 6.5rem 0 2.5rem;
+    }
+  }
+</style>

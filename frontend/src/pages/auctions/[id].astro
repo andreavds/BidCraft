@@ -1,0 +1,219 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import BiddingRoom from '../../components/BiddingRoom';
+import { browserApiUrl, formatMoney, serverApiUrl, type Auction, type Bid } from '../../lib/api';
+
+const { id } = Astro.params;
+const api = serverApiUrl();
+
+const auctionResponse = await fetch(`${api}/api/v1/auctions/${id}`);
+
+if (!auctionResponse.ok) {
+  return Astro.redirect('/auctions');
+}
+
+const auction: Auction = await auctionResponse.json();
+
+const bidsResponse = await fetch(`${api}/api/v1/auctions/${id}/bids`);
+const initialBids: Bid[] = bidsResponse.ok ? (await bidsResponse.json()).bids : [];
+
+const active = auction.status === 'ACTIVE';
+const endAt = new Date(auction.end_at).toLocaleString('es-ES', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+---
+
+<Layout title={`${auction.title} | BidCraft`}>
+  <div class="topbar"></div>
+
+  <div class="page detail">
+    <a class="back" href="/auctions">← Volver al catálogo</a>
+
+    <div class="grid">
+      <div class="left">
+        <figure class="media card">
+          {
+            auction.image_url ? (
+              <img src={auction.image_url} alt={auction.title} />
+            ) : (
+              <div class="media-empty" />
+            )
+          }
+        </figure>
+
+        <div class="specs card card-pad">
+          <h2>Detalles de la pieza</h2>
+          <dl>
+            <div>
+              <dt>Precio de salida</dt>
+              <dd>{formatMoney(auction.base_price)}</dd>
+            </div>
+            <div>
+              <dt>Incremento mínimo</dt>
+              <dd>{formatMoney(auction.minimum_increment)}</dd>
+            </div>
+            <div>
+              <dt>{active ? 'Finaliza' : 'Finalizó'}</dt>
+              <dd>{endAt}</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="right">
+        <header class="title-block">
+          <span class={active ? 'pill pill-live' : 'pill pill-ended'}>
+            {active ? 'En vivo' : 'Finalizada'}
+          </span>
+          <h1>{auction.title}</h1>
+          <p class="artist">
+            por <strong>{auction.artist}</strong>
+          </p>
+        </header>
+
+        <BiddingRoom
+          client:load
+          apiUrl={browserApiUrl()}
+          auction={auction}
+          initialBids={initialBids}
+        />
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .topbar {
+    height: 5.5rem;
+    background: linear-gradient(100deg, #35103f 0%, #1b0f24 45%, var(--ink) 100%);
+  }
+
+  .detail {
+    flex: 1;
+    padding-top: 1.5rem;
+    padding-bottom: 4rem;
+  }
+
+  .back {
+    display: inline-block;
+    margin-bottom: 1.25rem;
+    color: var(--text-2);
+    font-size: 0.92rem;
+    transition: color 0.15s ease;
+  }
+
+  .back:hover {
+    color: var(--text);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .left,
+  .right {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .media {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    aspect-ratio: 1 / 1;
+  }
+
+  .media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .media-empty {
+    width: 100%;
+    height: 100%;
+    background:
+      radial-gradient(120% 90% at 20% 10%, rgba(255, 79, 208, 0.14), transparent 60%),
+      linear-gradient(140deg, #ecedf1, #f7f7f9);
+  }
+
+  .specs h2 {
+    font-size: 1rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .specs dl {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .specs dl div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .specs dl div:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .specs dt {
+    color: var(--text-2);
+    font-size: 0.92rem;
+  }
+
+  .specs dd {
+    margin: 0;
+    font-weight: 600;
+    font-size: 0.92rem;
+  }
+
+  .title-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.7rem;
+  }
+
+  .artist {
+    color: var(--text-2);
+    font-size: 0.98rem;
+  }
+
+  .artist strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .title-block h1 {
+    font-size: clamp(1.6rem, 3.4vw, 2.3rem);
+  }
+
+  @media (max-width: 900px) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+
+    .left {
+      order: 2;
+    }
+
+    .right {
+      order: 1;
+    }
+
+    .media {
+      aspect-ratio: 4 / 3;
+    }
+  }
+</style>

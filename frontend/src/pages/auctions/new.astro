@@ -1,0 +1,98 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import NewAuctionForm from '../../components/NewAuctionForm';
+import { browserApiUrl } from '../../lib/api';
+---
+
+<Layout title="Publicar subasta | BidCraft">
+  <section class="head">
+    <div class="page head-inner">
+      <span class="eyebrow">Nueva subasta</span>
+      <h1>Publica tu pieza</h1>
+      <p class="lead">
+        Define el precio de salida y cuánto durará. El servidor calcula la hora de cierre y
+        finaliza la subasta por ti.
+      </p>
+    </div>
+  </section>
+
+  <section class="page wrap">
+    <div class="card card-pad form">
+      <NewAuctionForm client:load apiUrl={browserApiUrl()} />
+    </div>
+
+    <aside class="tips panel">
+      <h2>Cómo funciona</h2>
+      <ol>
+        <li>Publicas la pieza con su precio de salida.</li>
+        <li>Los compradores pujan en la sala en vivo.</li>
+        <li>Cada puja debe superar el precio actual más el incremento.</li>
+        <li>Al expirar el plazo, se cierra sola y se anuncia el ganador.</li>
+      </ol>
+    </aside>
+  </section>
+</Layout>
+
+<style>
+  .head {
+    color: #fff;
+    background: linear-gradient(100deg, #35103f 0%, #1b0f24 45%, var(--ink) 100%);
+    padding: 7.5rem 0 3rem;
+  }
+
+  .head-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .head h1 {
+    font-size: clamp(1.9rem, 4vw, 2.7rem);
+  }
+
+  .head .lead {
+    color: rgba(255, 255, 255, 0.62);
+  }
+
+  .wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+    margin-top: -2rem;
+    padding-bottom: 4rem;
+  }
+
+  .form {
+    box-shadow: var(--shadow);
+  }
+
+  .tips {
+    margin-top: 2rem;
+  }
+
+  .tips h2 {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .tips ol {
+    margin: 0;
+    padding-left: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    color: var(--text-2);
+    font-size: 0.92rem;
+  }
+
+  @media (max-width: 860px) {
+    .wrap {
+      grid-template-columns: 1fr;
+    }
+
+    .tips {
+      margin-top: 0;
+    }
+  }
+</style>

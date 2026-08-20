@@ -1,0 +1,50 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-bidcraft}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bidcraft}
+      POSTGRES_DB: ${POSTGRES_DB:-bidcraft}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bidcraft} -d ${POSTGRES_DB:-bidcraft}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-bidcraft}:${POSTGRES_PASSWORD:-bidcraft}@postgres:5432/${POSTGRES_DB:-bidcraft}?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      PORT: 8080
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Se incrusta en el bundle del navegador durante el build.
+        PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8080}
+    environment:
+      # El navegador llega al backend por localhost; el render en servidor, por
+      # el nombre del servicio dentro de la red de Compose.
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8080}
+      API_URL: http://backend:8080
+    ports:
+      - "${FRONTEND_PORT:-4321}:4321"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  uploads:

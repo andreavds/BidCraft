@@ -1,0 +1,17 @@
+# entorno
+.env
+.env.production
+
+# backend
+/backend/server
+/backend/server.exe
+
+# frontend
+node_modules/
+dist/
+.astro/
+npm-debug.log*
+
+# sistema / editores
+.DS_Store
+.idea/
