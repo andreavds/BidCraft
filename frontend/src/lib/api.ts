@@ -51,9 +51,7 @@ export function apiErrorMessage(payload: ApiErrorPayload, fallback: string): str
       return 'No puedes pujar en una subasta que publicaste.';
     case 'bid_too_low': {
       const amount = payload.message?.match(/([0-9]+(?:\.[0-9]{2}))/)?.[1];
-      return amount
-        ? `La puja mínima aceptada es $${amount}.`
-        : 'La puja es demasiado baja.';
+      return amount ? `La puja mínima aceptada es $${amount}.` : 'La puja es demasiado baja.';
     }
     case 'validation_error':
       return translateValidationMessage(payload.message) ?? 'Revisa los datos introducidos.';
@@ -66,21 +64,29 @@ export function apiErrorMessage(payload: ApiErrorPayload, fallback: string): str
 
 function translateValidationMessage(message?: string): string | null {
   if (!message) return null;
-  if (message === 'Request body must be valid JSON') return 'El cuerpo de la solicitud no es válido.';
+  if (message === 'Request body must be valid JSON')
+    return 'El cuerpo de la solicitud no es válido.';
   if (message === 'email is required') return 'El correo es obligatorio.';
   if (message === 'email is not a valid address') return 'Introduce un correo válido.';
   if (message === 'full_name is required') return 'El nombre completo es obligatorio.';
   if (message === 'password is required') return 'La contraseña es obligatoria.';
-  if (message === 'amount must be greater than zero, in cents') return 'La puja debe ser mayor que cero.';
+  if (message === 'amount must be greater than zero, in cents')
+    return 'La puja debe ser mayor que cero.';
   if (message === 'title is required') return 'El título es obligatorio.';
-  if (message === 'image_url must be an absolute http(s) URL') return 'La imagen debe usar una URL http(s) válida.';
-  if (message.includes('duration_seconds')) return 'La duración debe estar entre 10 segundos y 7 días.';
+  if (message === 'image_url must be an absolute http(s) URL')
+    return 'La imagen debe usar una URL http(s) válida.';
+  if (message.includes('duration_seconds'))
+    return 'La duración debe estar entre 10 segundos y 7 días.';
   if (message.includes('base_price')) return 'El precio de salida no puede ser negativo.';
   if (message.includes('minimum_increment')) return 'El incremento mínimo debe ser mayor que cero.';
-  if (message.includes('full_name must be')) return 'El nombre completo no puede superar los 120 caracteres.';
-  if (message.includes('password must be at least')) return 'La contraseña debe tener al menos 8 caracteres.';
-  if (message.includes('password must be at most')) return 'La contraseña no puede superar los 72 caracteres.';
-  if (message.includes('image_url must be at most')) return 'La URL de la imagen es demasiado larga.';
+  if (message.includes('full_name must be'))
+    return 'El nombre completo no puede superar los 120 caracteres.';
+  if (message.includes('password must be at least'))
+    return 'La contraseña debe tener al menos 8 caracteres.';
+  if (message.includes('password must be at most'))
+    return 'La contraseña no puede superar los 72 caracteres.';
+  if (message.includes('image_url must be at most'))
+    return 'La URL de la imagen es demasiado larga.';
   if (message.includes('limit must be') || message.includes('offset must be')) {
     return 'El valor de paginación no es válido.';
   }
@@ -106,14 +112,35 @@ export function formatMoney(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
-/** Texto aproximado del tiempo que queda, para las tarjetas renderizadas en servidor. */
+/** Segundos que faltan para `endAt`, nunca negativos. */
+export function secondsLeft(endAt: string): number {
+  return Math.max(0, Math.floor((new Date(endAt).getTime() - Date.now()) / 1000));
+}
+
+/**
+ * Cuenta atrás con segundos visibles: `mm:ss`, `h:mm:ss` o `d hh:mm:ss`.
+ *
+ * La usan la sala y las tarjetas del catálogo, y también el render en servidor
+ * de la tarjeta, para que el primer pintado ya tenga el mismo formato que el
+ * primer tic del navegador.
+ */
+export function formatCountdown(seconds: number): string {
+  const pad = (value: number) => String(value).padStart(2, '0');
+
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const rest = seconds % 60;
+
+  if (days > 0) return `${days} d ${pad(hours)}:${pad(minutes)}:${pad(rest)}`;
+  if (hours > 0) return `${hours}:${pad(minutes)}:${pad(rest)}`;
+
+  return `${pad(minutes)}:${pad(rest)}`;
+}
+
+/** Texto del tiempo que queda para las tarjetas renderizadas en servidor. */
 export function timeLeftLabel(endAt: string): string {
-  const seconds = Math.floor((new Date(endAt).getTime() - Date.now()) / 1000);
+  const seconds = secondsLeft(endAt);
 
-  if (seconds <= 0) return 'Cerrando…';
-  if (seconds < 60) return `${seconds} s`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)} min`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)} h`;
-
-  return `${Math.floor(seconds / 86400)} d`;
+  return seconds === 0 ? 'Cerrando…' : formatCountdown(seconds);
 }

@@ -118,7 +118,7 @@ func (c *Closer) Close(ctx context.Context, auctionID int64) (closed bool, retry
 	}
 
 	if c.hub != nil {
-		c.hub.Broadcast(auctionID, websocket.Event{
+		event := websocket.Event{
 			Type: "auction_finished",
 			Data: map[string]any{
 				"auction_id":  auctionID,
@@ -127,7 +127,12 @@ func (c *Closer) Close(ctx context.Context, auctionID int64) (closed bool, retry
 				"winner_name": winnerName,
 				"final_price": finalPrice,
 			},
-		})
+		}
+
+		// A la sala, para la página de la subasta; y al catálogo, para que la
+		// tarjeta pase a FINISHED sin esperar a que alguien recargue la lista.
+		c.hub.Broadcast(auctionID, event)
+		c.hub.BroadcastCatalog(event)
 	}
 
 	return true, time.Time{}, nil

@@ -14,6 +14,12 @@ import (
 // perdido. Sin este margen, un cliente lento bloquearía la difusión al resto.
 const sendBuffer = 16
 
+// catalogRoom es la sala del catálogo: la de quien mira la lista de subastas en
+// lugar de una sala concreta. Reutiliza el mismo mapa de salas con un id que
+// ninguna subasta puede tener, así que sus eventos no se cruzan con los de una
+// subasta ni al revés.
+const catalogRoom int64 = 0
+
 // Event es el formato de todos los mensajes que salen hacia el navegador.
 type Event struct {
 	Type string `json:"type"`
@@ -50,6 +56,13 @@ func NewHub() *Hub {
 // Broadcast envía un evento a todos los clientes de una subasta.
 func (h *Hub) Broadcast(auctionID int64, event Event) {
 	h.deliver(auctionID, event, func(*client) bool { return true })
+}
+
+// BroadcastCatalog envía un evento a los clientes conectados al catálogo, no a
+// los de una subasta concreta. Lo usa la creación de subastas, que cambia la
+// lista pero no ninguna sala.
+func (h *Hub) BroadcastCatalog(event Event) {
+	h.Broadcast(catalogRoom, event)
 }
 
 // SendToUser envía un evento solo a las conexiones de un usuario concreto dentro

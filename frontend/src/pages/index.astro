@@ -1,7 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import AuctionCard from '../components/AuctionCard.astro';
-import { serverApiUrl, type Auction } from '../lib/api';
+import { browserApiUrl, serverApiUrl, type Auction } from '../lib/api';
 
 let featured: Auction[] = [];
 
@@ -96,22 +96,24 @@ const steps = [
         <a class="btn btn-ghost" href="/auctions">Ver todas</a>
       </div>
 
-      {
-        featured.length > 0 ? (
-          <div class="grid">
-            {featured.map((auction) => (
-              <AuctionCard auction={auction} />
-            ))}
-          </div>
-        ) : (
-          <div class="empty card">
-            <span class="empty-mark" />
-            <h3>Todavía no hay subastas abiertas</h3>
-            <p class="muted">Publica la primera pieza y compártela para que otros pujen.</p>
-            <a class="btn btn-accent" href="/auctions/new">Publicar una subasta</a>
-          </div>
-        )
-      }
+      <div data-catalog data-api={browserApiUrl()}>
+        {
+          featured.length > 0 ? (
+            <div class="grid">
+              {featured.map((auction) => (
+                <AuctionCard auction={auction} />
+              ))}
+            </div>
+          ) : (
+            <div class="empty card">
+              <span class="empty-mark" />
+              <h3>Todavía no hay subastas abiertas</h3>
+              <p class="muted">Publica la primera pieza y compártela para que otros pujen.</p>
+              <a class="btn btn-accent" href="/auctions/new">Publicar una subasta</a>
+            </div>
+          )
+        }
+      </div>
     </div>
   </section>
 
@@ -153,6 +155,15 @@ const steps = [
       </div>
     </div>
   </section>
+
+  <script>
+    // Las subastas abiertas de la landing se mantienen al día igual que el
+    // catálogo: aparecen las nuevas y desaparecen las que se cierran, porque
+    // esta lista solo pide las ACTIVE.
+    import { connectCatalog } from '../lib/catalog-live';
+
+    connectCatalog();
+  </script>
 </Layout>
 
 <style>

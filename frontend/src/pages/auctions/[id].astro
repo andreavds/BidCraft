@@ -54,7 +54,7 @@ const endAt = new Date(auction.end_at).toLocaleString('es-ES', {
               <dd>{formatMoney(auction.minimum_increment)}</dd>
             </div>
             <div>
-              <dt>{active ? 'Finaliza' : 'Finalizó'}</dt>
+              <dt data-end-label>{active ? 'Finaliza' : 'Finalizó'}</dt>
               <dd>{endAt}</dd>
             </div>
           </dl>
@@ -63,7 +63,7 @@ const endAt = new Date(auction.end_at).toLocaleString('es-ES', {
 
       <div class="right">
         <header class="title-block">
-          <span class={active ? 'pill pill-live' : 'pill pill-ended'}>
+          <span class={active ? 'pill pill-live' : 'pill pill-ended'} data-status-pill>
             {active ? 'En vivo' : 'Finalizada'}
           </span>
           <h1>{auction.title}</h1>
@@ -81,6 +81,23 @@ const endAt = new Date(auction.end_at).toLocaleString('es-ES', {
       </div>
     </div>
   </div>
+
+  <script>
+    // BiddingRoom avisa por el DOM cuando recibe auction_finished por WebSocket.
+    // La sala en sí ya se actualiza sola; esto solo pone al día lo que renderizó
+    // Astro alrededor del island.
+    document.addEventListener('auction:finished', () => {
+      const pill = document.querySelector<HTMLElement>('[data-status-pill]');
+      if (pill) {
+        pill.textContent = 'Finalizada';
+        pill.classList.remove('pill-live');
+        pill.classList.add('pill-ended');
+      }
+
+      const endLabel = document.querySelector<HTMLElement>('[data-end-label]');
+      if (endLabel) endLabel.textContent = 'Finalizó';
+    });
+  </script>
 </Layout>
 
 <style>

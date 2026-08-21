@@ -1,27 +1,18 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { apiErrorMessage, formatMoney, type Auction, type Bid } from '../lib/api';
+import {
+  apiErrorMessage,
+  formatCountdown,
+  formatMoney,
+  secondsLeft,
+  type Auction,
+  type Bid,
+} from '../lib/api';
 import { readSession, type Session } from '../lib/session';
 
 interface Props {
   apiUrl: string;
   auction: Auction;
   initialBids: Bid[];
-}
-
-function secondsLeft(endAt: string): number {
-  return Math.max(0, Math.floor((new Date(endAt).getTime() - Date.now()) / 1000));
-}
-
-function formatCountdown(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const rest = seconds % 60;
-
-  const pad = (value: number) => String(value).padStart(2, '0');
-
-  return hours > 0
-    ? `${hours}:${pad(minutes)}:${pad(rest)}`
-    : `${pad(minutes)}:${pad(rest)}`;
 }
 
 export default function BiddingRoom({ apiUrl, auction, initialBids }: Props) {
@@ -40,6 +31,15 @@ export default function BiddingRoom({ apiUrl, auction, initialBids }: Props) {
   const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => setSession(readSession()), []);
+
+  // La cabecera de la página (la etiqueta "En vivo" y el rótulo de la fecha de
+  // fin) la renderiza Astro fuera del island, así que se le avisa por el DOM
+  // cuando la subasta se cierra. Sin esto solo se enteraría al recargar.
+  useEffect(() => {
+    if (status === 'FINISHED') {
+      document.dispatchEvent(new CustomEvent('auction:finished'));
+    }
+  }, [status]);
 
   useEffect(() => {
     if (status === 'FINISHED') {
@@ -110,7 +110,10 @@ export default function BiddingRoom({ apiUrl, auction, initialBids }: Props) {
     try {
       const response = await fetch(`${apiUrl}/api/v1/auctions/${auction.id}/bids`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.token}`,
+        },
         body: JSON.stringify({ amount: Math.round(Number(amount) * 100) }),
       });
 
@@ -175,9 +178,7 @@ export default function BiddingRoom({ apiUrl, auction, initialBids }: Props) {
         </div>
       )}
 
-      {!finished && expired && (
-        <p className="form-note">El tiempo expiró. Cerrando la subasta…</p>
-      )}
+      {!finished && expired && <p className="form-note">El tiempo expiró. Cerrando la subasta…</p>}
 
       {notice && <p className="form-note">{notice}</p>}
 

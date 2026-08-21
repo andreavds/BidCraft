@@ -3,6 +3,8 @@ package auctions
 import (
 	"context"
 	"time"
+
+	"bidcraft/internal/websocket"
 )
 
 // Límites de paginación del catálogo.
@@ -15,13 +17,14 @@ const (
 type Service struct {
 	repo      Repository
 	scheduler *Scheduler
+	hub       *websocket.Hub
 	now       func() time.Time
 }
 
-// NewService admite scheduler nil: en ese caso no se programa el cierre
-// automático, algo útil en tests.
-func NewService(repo Repository, scheduler *Scheduler) *Service {
-	return &Service{repo: repo, scheduler: scheduler, now: time.Now}
+// NewService admite scheduler y hub nil: en ese caso no se programa el cierre
+// automático ni se emiten eventos, algo útil en tests.
+func NewService(repo Repository, scheduler *Scheduler, hub *websocket.Hub) *Service {
+	return &Service{repo: repo, scheduler: scheduler, hub: hub, now: time.Now}
 }
 
 // Create valida la entrada del cliente, deriva el estado inicial y persiste.
@@ -40,6 +43,16 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (Auction, error
 
 	if s.scheduler != nil {
 		s.scheduler.Schedule(auction.ID, auction.EndAt)
+	}
+
+	// Ya está persistida: solo ahora se avisa al catálogo, igual que una puja no
+	// se notifica hasta estar confirmada. Se envía la misma representación que
+	// devuelve GET /api/v1/auctions para que el cliente no tenga que reconstruirla.
+	if s.hub != nil {
+		s.hub.BroadcastCatalog(websocket.Event{
+			Type: "auction_created",
+			Data: newAuctionResponse(auction),
+		})
 	}
 
 	return auction, nil

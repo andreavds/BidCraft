@@ -48,23 +48,15 @@ const active = auction.status === 'ACTIVE';
 </a>
 
 <script>
-  const cards = document.querySelectorAll<HTMLElement>('[data-live]');
-  let refreshing = false;
-
-  function label(seconds: number): string {
-    if (seconds < 60) return `${seconds} s`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} min`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)} h`;
-
-    return `${Math.floor(seconds / 86400)} d`;
-  }
+  import { formatCountdown, secondsLeft } from '../lib/api';
 
   function tick() {
-    const now = Date.now();
+    // Se consultan en cada vuelta porque el catálogo puede insertar tarjetas
+    // nuevas cuando llega una subasta por WebSocket.
+    const cards = document.querySelectorAll<HTMLElement>('[data-live]');
 
     for (const card of cards) {
-      const endAt = new Date(card.dataset.live ?? '').getTime();
-      const left = Math.max(0, Math.floor((endAt - now) / 1000));
+      const left = secondsLeft(card.dataset.live ?? '');
 
       const time = card.querySelector<HTMLElement>('[data-time]');
       const state = card.querySelector<HTMLElement>('[data-state]');
@@ -77,15 +69,19 @@ const active = auction.status === 'ACTIVE';
           state.classList.add('pill-ended');
         }
 
-        if (!refreshing) {
-          refreshing = true;
-          setTimeout(() => location.reload(), 4000);
+        // El cierre lo hace el backend y llega por WebSocket. Este aviso solo es
+        // la red de seguridad por si ese evento no llegó: el catálogo vuelve a
+        // pedir los datos unos segundos después, sin recargar la página. La
+        // marca va en la propia tarjeta para avisar una sola vez por subasta.
+        if (!card.dataset.expired) {
+          card.dataset.expired = 'true';
+          setTimeout(() => document.dispatchEvent(new CustomEvent('auction:expired')), 4000);
         }
 
         continue;
       }
 
-      if (time) time.textContent = label(left);
+      if (time) time.textContent = formatCountdown(left);
     }
   }
 

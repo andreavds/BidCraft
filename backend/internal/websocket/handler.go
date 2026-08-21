@@ -68,24 +68,39 @@ func (h *Handler) Serve(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	h.serveRoom(w, r, auctionID, userID)
+}
+
+// ServeCatalog atiende GET /api/v1/auctions/ws, la sala del catálogo.
+//
+// Es pública y sin token: solo difunde altas de subastas, que ya son públicas en
+// GET /api/v1/auctions. Sirve para que la lista se actualice sola cuando otro
+// usuario publica una subasta, sin recargar la página.
+func (h *Handler) ServeCatalog(w http.ResponseWriter, r *http.Request) {
+	h.serveRoom(w, r, catalogRoom, 0)
+}
+
+// serveRoom sube la conexión a WebSocket y la mantiene dada de alta en una sala
+// hasta que el cliente se va.
+func (h *Handler) serveRoom(w http.ResponseWriter, r *http.Request, room, userID int64) {
 	conn, err := h.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("websocket: upgrade failed for auction %d: %v", auctionID, err)
+		log.Printf("websocket: upgrade failed for room %d: %v", room, err)
 		return
 	}
 
 	c := &client{conn: conn, userID: userID, send: make(chan []byte, sendBuffer)}
-	h.hub.register(auctionID, c)
-	log.Printf("websocket connected: auction=%d user=%d clients=%d", auctionID, userID, h.hub.clientCount(auctionID))
+	h.hub.register(room, c)
+	log.Printf("websocket connected: room=%d user=%d clients=%d", room, userID, h.hub.clientCount(room))
 
 	// Una goroutine escribe y la actual lee: así el hub nunca escribe en la
 	// conexión y una conexión rota no afecta a los demás clientes.
 	go c.writePump()
 	c.readPump()
 
-	h.hub.unregister(auctionID, c)
+	h.hub.unregister(room, c)
 	conn.Close()
-	log.Printf("websocket disconnected: auction=%d user=%d clients=%d", auctionID, userID, h.hub.clientCount(auctionID))
+	log.Printf("websocket disconnected: room=%d user=%d clients=%d", room, userID, h.hub.clientCount(room))
 }
 
 // readPump descarta lo que envíe el cliente —la sala es de solo lectura— y

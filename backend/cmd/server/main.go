@@ -86,7 +86,7 @@ func main() {
 		log.Fatalf("uploads unavailable: %v", err)
 	}
 
-	auctionHandler := auctions.NewHandler(auctions.NewService(auctionRepo, scheduler))
+	auctionHandler := auctions.NewHandler(auctions.NewService(auctionRepo, scheduler, hub))
 	bidHandler := bids.NewHandler(bids.NewService(bidRepo, auctionLocks, hub))
 	wsHandler := websocket.NewHandler(hub, bidRepo.AuctionExists, jwtSecret)
 
@@ -119,6 +119,9 @@ func main() {
 			// La sala en vivo es pública; el token opcional en query solo sirve
 			// para dirigir el evento outbid.
 			r.Get("/{id}/ws", wsHandler.Serve)
+			// Sala del catálogo: avisa de las subastas nuevas. La ruta estática
+			// tiene prioridad sobre /{id}, así que "ws" no se lee como un id.
+			r.Get("/ws", wsHandler.ServeCatalog)
 
 			r.Group(func(r chi.Router) {
 				r.Use(appmiddleware.RequireAuth(jwtSecret))

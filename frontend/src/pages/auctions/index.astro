@@ -1,7 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import AuctionCard from '../../components/AuctionCard.astro';
-import { serverApiUrl, type Auction } from '../../lib/api';
+import { browserApiUrl, serverApiUrl, type Auction } from '../../lib/api';
 
 const requested = Astro.url.searchParams.get('status')?.toUpperCase() ?? '';
 const status = requested === 'ACTIVE' || requested === 'FINISHED' ? requested : '';
@@ -56,7 +56,7 @@ const liveCount = auctions.filter((auction) => auction.status === 'ACTIVE').leng
 
         {
           !loadError && (
-            <span class="count muted">
+            <span class="count muted" data-count>
               {auctions.length} {auctions.length === 1 ? 'subasta' : 'subastas'}
               {status === '' && liveCount > 0 && ` · ${liveCount} en vivo`}
             </span>
@@ -66,7 +66,7 @@ const liveCount = auctions.filter((auction) => auction.status === 'ACTIVE').leng
     </div>
   </section>
 
-  <section class="list page">
+  <section class="list page" data-catalog data-api={browserApiUrl()}>
     {loadError && <p class="card card-pad error">{loadError}</p>}
 
     {
@@ -94,6 +94,12 @@ const liveCount = auctions.filter((auction) => auction.status === 'ACTIVE').leng
       )
     }
   </section>
+
+  <script>
+    import { connectCatalog } from '../../lib/catalog-live';
+
+    connectCatalog();
+  </script>
 </Layout>
 
 <style>
